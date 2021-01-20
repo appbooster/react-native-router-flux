@@ -108,47 +108,60 @@ class App extends React.Component {
     );
   }
 }
+class Router extends React.Component {
+  static propTypes = {
+    onStateChange: PropTypes.func,
+    scenes: PropTypes.func,
+    navigator: PropTypes.func,
+    wrapBy: PropTypes.func,
+    getSceneStyle: PropTypes.func,
+    sceneStyle: ViewPropTypes.style,
+    createReducer: PropTypes.func,
+    children: PropTypes.element,
+    uriPrefix: PropTypes.string,
+    onDeepLink: PropTypes.func,
+    navigationStore: PropTypes.instanceOf(NavigationStore),
+  };
 
-const Router = ({ createReducer, sceneStyle, onStateChange, scenes, uriPrefix, navigator, getSceneStyle, children, onDeepLink, wrapBy, navigationStore: store, ...props }) => {
-  const data = { ...props };
-  if (getSceneStyle) {
-    data.cardStyle = getSceneStyle(props);
+  static defaultProps = {
+    onStateChange: null,
+    scenes: null,
+    navigator: null,
+    wrapBy: (props) => props,
+    getSceneStyle: null,
+    sceneStyle: null,
+    children: null,
+    uriPrefix: null,
+    onDeepLink: null,
+    navigationStore: null,
+  };
+
+  constructor(props) {
+    super(props);
+    const { createReducer, sceneStyle, onStateChange, scenes, navigator, getSceneStyle, children, wrapBy, navigationStore: store, ...otherProps } = props;
+    const data = { ...otherProps };
+    if (getSceneStyle) {
+      data.cardStyle = getSceneStyle(otherProps);
+    }
+    if (sceneStyle) {
+      data.cardStyle = sceneStyle;
+    }
+    const navigationStore = store || defaultStore;
+    const AppNavigator = scenes || navigator || navigationStore.create(children, data, wrapBy);
+    navigationStore.reducer = createReducer && createReducer(otherProps);
+    if (onStateChange) {
+      navigationStore.onStateChange = onStateChange;
+    }
+    this.state = {
+      navigationStore: navigationStore,
+      navigator: AppNavigator,
+    };
   }
-  if (sceneStyle) {
-    data.cardStyle = sceneStyle;
+
+  render() {
+    const { uriPrefix, onDeepLink, ...otherProps } = this.props;
+    return <App {...otherProps} onDeepLink={onDeepLink} navigator={this.state.navigator} uriPrefix={uriPrefix} navigationStore={this.state.navigationStore} />;
   }
-  const navigationStore = store || defaultStore;
-  const AppNavigator = scenes || navigator || navigationStore.create(children, data, wrapBy);
-  navigationStore.reducer = createReducer && createReducer(props);
-  if (onStateChange) {
-    navigationStore.onStateChange = onStateChange;
-  }
-  return <App {...props} onDeepLink={onDeepLink} navigator={AppNavigator} uriPrefix={uriPrefix} navigationStore={navigationStore} />;
-};
-Router.propTypes = {
-  onStateChange: PropTypes.func,
-  scenes: PropTypes.func,
-  navigator: PropTypes.func,
-  wrapBy: PropTypes.func,
-  getSceneStyle: PropTypes.func,
-  sceneStyle: ViewPropTypes.style,
-  createReducer: PropTypes.func,
-  children: PropTypes.element,
-  uriPrefix: PropTypes.string,
-  onDeepLink: PropTypes.func,
-  navigationStore: PropTypes.instanceOf(NavigationStore),
-};
-Router.defaultProps = {
-  onStateChange: null,
-  scenes: null,
-  navigator: null,
-  wrapBy: (props) => props,
-  getSceneStyle: null,
-  sceneStyle: null,
-  children: null,
-  uriPrefix: null,
-  onDeepLink: null,
-  navigationStore: null,
-};
+}
 
 export default Router;
